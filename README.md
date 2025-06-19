@@ -52,7 +52,15 @@ Deploy CLIP, Grounding DINO + SAM2, Qwen 2.5 VL, and other ML models to Kubernet
 ### Installation
 
 ```bash
-pip install model-zoo-fastapi
+# Clone the repository
+git clone https://github.com/lsb/fastapi-inference-menagerie-claude.git
+cd fastapi-inference-menagerie-claude
+
+# Install with pip (recommended)
+pip install -e .
+
+# Or install with all development dependencies
+pip install -e ".[dev]"
 ```
 
 ### Local Development
@@ -283,3 +291,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 Made with ❤️ for the ML community
+
+> **Note**: This project is currently installed from source. PyPI package release is planned for future versions.
