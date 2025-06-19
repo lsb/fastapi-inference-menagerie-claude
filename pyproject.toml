@@ -109,8 +109,9 @@ addopts = "-ra -q --strict-markers"
 testpaths = ["tests"]
 markers = [
     "unit: Unit tests that don't require external dependencies",
-    "e2e: End-to-end tests that require k3d cluster",
+    "e2e: End-to-end tests that require k3d cluster", 
     "slow: Tests that take more than 10 seconds",
+    "asyncio: Async tests using asyncio",
 ]
 asyncio_mode = "auto"
 

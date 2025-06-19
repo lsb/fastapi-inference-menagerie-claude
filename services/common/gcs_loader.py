@@ -36,7 +36,7 @@ class GCSLoader:
         
         # Set up cache directory
         if cache_dir is None:
-            cache_dir = Path("/var/cache/zoo")
+            cache_dir = os.getenv("CACHE_DIR", "/var/cache/zoo")
         
         self.cache_dir = Path(cache_dir)
         if self.enable_cache:
