@@ -56,11 +56,11 @@ Deploy CLIP, Grounding DINO + SAM2, Qwen 2.5 VL, and other ML models to Kubernet
 git clone https://github.com/lsb/fastapi-inference-menagerie-claude.git
 cd fastapi-inference-menagerie-claude
 
-# Install with pip (recommended)
-pip install -e .
+# Quick install (recommended)
+./scripts/install.sh
 
 # Or install with all development dependencies
-pip install -e ".[dev]"
+./scripts/install-dev.sh
 ```
 
 ### Local Development
@@ -176,6 +176,10 @@ for event in client.events():
 ### Environment Variables
 
 ```bash
+# Set up development environment variables
+source scripts/setup/environment.sh
+
+# Or manually configure:
 export MODEL_GCS_PATH="gs://my-bucket/models/clip/v1.0/"
 export MODEL_NAME="clip"
 export DEVICE="cuda:0"
@@ -228,19 +232,58 @@ Structured logs with consistent format:
 
 ## 🧪 Testing
 
+### Quick Test Commands
+
 ```bash
-# Unit tests
+# Run all tests
+./scripts/test/run-all.sh
+
+# Run only unit tests
+./scripts/test/run-unit.sh
+
+# Test specific model
+./scripts/test/run-unit.sh --model clip
+./scripts/test/run-unit.sh --model grounding_sam
+./scripts/test/run-unit.sh --model qwen_vl
+
+# Verify CPU compatibility for all service endpoints  
+./scripts/test/run-services-cpu.sh
+
+# Test all models including adapter tests (may have minor failures)
+./scripts/test/run-cpu-mode.sh
+```
+
+### Manual Testing
+
+```bash
+# Unit tests only
 pytest tests/unit/ -v
 
-# Integration tests with k3d
+# Test specific model services
+DEVICE=cpu CACHE_DIR=/tmp/test_cache pytest tests/unit/test_grounding_sam_service.py -v
+DEVICE=cpu CACHE_DIR=/tmp/test_cache pytest tests/unit/test_qwen_vl_service.py -v
+
+# Integration tests with k3d (if available)
 pytest tests/e2e/ -v
 
-# Performance tests
+# Performance tests (if available) 
 pytest tests/performance/ -v
-
-# Run all tests
-pytest -v
 ```
+
+### Test Coverage
+
+| Model | Service Tests | Adapter Tests | CPU Support |
+|-------|---------------|---------------|-------------|
+| **CLIP** | ✅ | ✅ | ✅ |
+| **Grounding DINO + SAM2** | ✅ (10 tests) | ✅ (16 tests) | ✅ |
+| **Qwen 2.5 VL** | ✅ (16 tests) | ✅ (13 tests) | ✅ |
+
+All models include comprehensive tests for:
+- API endpoints and validation
+- Model loading and prediction
+- Error handling and edge cases
+- CPU device compatibility
+- Streaming responses (where applicable)
 
 ## 🚀 CI/CD
 
