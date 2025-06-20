@@ -2,43 +2,46 @@
 
 import os
 from typing import Optional
-from pydantic import BaseSettings, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class ModelServiceConfig(BaseSettings):
     """Base configuration for model services."""
     
-    # Model configuration
-    model_gcs_path: str = Field(..., env="MODEL_GCS_PATH")
-    model_name: str = Field(..., env="MODEL_NAME")
-    device: str = Field(default="cuda:0", env="DEVICE")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore"
+    )
+    
+    # Model configuration  
+    model_gcs_path: Optional[str] = None
+    model_name: str = "test-model"
+    device: str = "cuda:0"
     
     # Server configuration
-    host: str = Field(default="0.0.0.0", env="HOST")
-    port: int = Field(default=8000, env="PORT")
-    workers: int = Field(default=1, env="WORKERS")
+    host: str = "0.0.0.0"
+    port: int = 8000
+    workers: int = 1
     
     # Logging configuration
-    log_level: str = Field(default="INFO", env="LOG_LEVEL")
+    log_level: str = "INFO"
     
     # Cache configuration
-    cache_dir: str = Field(default="/var/cache/zoo", env="CACHE_DIR")
-    enable_cache: bool = Field(default=True, env="ENABLE_CACHE")
+    cache_dir: str = "/var/cache/zoo"
+    enable_cache: bool = True
     
     # GCS configuration
-    gcp_project: Optional[str] = Field(default=None, env="GCP_PROJECT")
-    gcs_timeout: int = Field(default=300, env="GCS_TIMEOUT")
+    gcp_project: Optional[str] = None
+    gcs_timeout: int = 300
     
     # Resource limits
-    max_concurrent_requests: int = Field(default=10, env="MAX_CONCURRENT_REQUESTS")
-    request_timeout: int = Field(default=120, env="REQUEST_TIMEOUT")
+    max_concurrent_requests: int = 10
+    request_timeout: int = 120
     
     # Metrics configuration
-    metrics_interval: int = Field(default=5, env="METRICS_INTERVAL")
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    metrics_interval: int = 5
 
 
 def get_config() -> ModelServiceConfig:
