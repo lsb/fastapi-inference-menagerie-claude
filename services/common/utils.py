@@ -33,6 +33,10 @@ def decode_base64_to_image(base64_str: str) -> Image.Image:
     Returns:
         PIL Image
     """
+    # Strip data URL prefix if present
+    if base64_str.startswith('data:image/'):
+        base64_str = base64_str.split(',', 1)[1]
+    
     image_bytes = base64.b64decode(base64_str)
     return Image.open(io.BytesIO(image_bytes))
 
@@ -79,6 +83,8 @@ def validate_gcs_path(gcs_path: str) -> bool:
     Returns:
         True if valid GCS path
     """
+    if gcs_path is None:
+        return False
     return gcs_path.startswith("gs://") and len(gcs_path) > 5
 
 

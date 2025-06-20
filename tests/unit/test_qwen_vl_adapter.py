@@ -11,6 +11,39 @@ import asyncio
 from services.qwen_vl.adapter import QwenVLAdapter
 
 
+def create_mock_inputs(input_ids, attention_mask, pixel_values):
+    """Create a mock inputs object that behaves like transformers output."""
+    mock_inputs = MagicMock()
+    mock_inputs.input_ids = input_ids
+    mock_inputs.attention_mask = attention_mask
+    mock_inputs.pixel_values = pixel_values
+    
+    # Define getitem method to access as dict
+    def _getitem(key):
+        return {
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+            "pixel_values": pixel_values
+        }[key]
+    mock_inputs.__getitem__ = _getitem
+    
+    # Define items method for iteration
+    def _items():
+        return [
+            ("input_ids", input_ids),
+            ("attention_mask", attention_mask),
+            ("pixel_values", pixel_values)
+        ]
+    mock_inputs.items = _items
+    
+    # Define keys method for dict-like behavior
+    def _keys():
+        return ["input_ids", "attention_mask", "pixel_values"]
+    mock_inputs.keys = _keys
+    
+    return mock_inputs
+
+
 class TestQwenVLAdapter:
     """Test Qwen VL adapter."""
     
@@ -167,11 +200,12 @@ class TestQwenVLAdapter:
         
         # Mock processor methods
         adapter.processor.apply_chat_template.return_value = "formatted_text"
-        adapter.processor.return_value = {
-            "input_ids": torch.tensor([[1, 2, 3]]),
-            "attention_mask": torch.tensor([[1, 1, 1]]),
-            "pixel_values": torch.tensor([[[[0.5]]]])
-        }
+        mock_inputs = create_mock_inputs(
+            torch.tensor([[1, 2, 3]]),
+            torch.tensor([[1, 1, 1]]),
+            torch.tensor([[[[0.5]]]])
+        )
+        adapter.processor.return_value = mock_inputs
         adapter.processor.batch_decode.return_value = ["This is a test response."]
         
         # Mock model generation
@@ -212,11 +246,11 @@ class TestQwenVLAdapter:
         # Mock components
         adapter.tokenizer.eos_token_id = 2
         adapter.processor.apply_chat_template.return_value = "formatted_text"
-        adapter.processor.return_value = {
-            "input_ids": torch.tensor([[1, 2, 3]]),
-            "attention_mask": torch.tensor([[1, 1, 1]]),
-            "pixel_values": torch.tensor([[[[0.5]]]])
-        }
+        adapter.processor.return_value = create_mock_inputs(
+            torch.tensor([[1, 2, 3]]),
+            torch.tensor([[1, 1, 1]]),
+            torch.tensor([[[[0.5]]]])
+        )
         adapter.processor.batch_decode.return_value = ["Greedy response."]
         
         mock_generated_ids = torch.tensor([[1, 2, 3, 4, 5]])
@@ -247,11 +281,11 @@ class TestQwenVLAdapter:
         # Setup mocks
         adapter.tokenizer.eos_token_id = 2
         adapter.processor.apply_chat_template.return_value = "formatted_text"
-        adapter.processor.return_value = {
-            "input_ids": torch.tensor([[1, 2, 3]]),
-            "attention_mask": torch.tensor([[1, 1, 1]]),
-            "pixel_values": torch.tensor([[[[0.5]]]])
-        }
+        adapter.processor.return_value = create_mock_inputs(
+            torch.tensor([[1, 2, 3]]),
+            torch.tensor([[1, 1, 1]]),
+            torch.tensor([[[[0.5]]]])
+        )
         adapter.processor.batch_decode.return_value = ["Default response."]
         
         mock_generated_ids = torch.tensor([[1, 2, 3, 4, 5]])
@@ -288,11 +322,11 @@ class TestQwenVLAdapter:
         
         # Mock processor
         adapter.processor.apply_chat_template.return_value = "formatted_text"
-        adapter.processor.return_value = {
-            "input_ids": torch.tensor([[1, 2, 3]]),
-            "attention_mask": torch.tensor([[1, 1, 1]]),
-            "pixel_values": torch.tensor([[[[0.5]]]])
-        }
+        adapter.processor.return_value = create_mock_inputs(
+            torch.tensor([[1, 2, 3]]),
+            torch.tensor([[1, 1, 1]]),
+            torch.tensor([[[[0.5]]]])
+        )
         
         # Mock model forward pass
         mock_outputs = MagicMock()
@@ -349,11 +383,11 @@ class TestQwenVLAdapter:
         adapter.tokenizer.decode.side_effect = ["Token1", "Token2"]
         
         adapter.processor.apply_chat_template.return_value = "formatted_text"
-        adapter.processor.return_value = {
-            "input_ids": torch.tensor([[1, 2, 3]]),
-            "attention_mask": torch.tensor([[1, 1, 1]]),
-            "pixel_values": torch.tensor([[[[0.5]]]])
-        }
+        adapter.processor.return_value = create_mock_inputs(
+            torch.tensor([[1, 2, 3]]),
+            torch.tensor([[1, 1, 1]]),
+            torch.tensor([[[[0.5]]]])
+        )
         
         mock_outputs = MagicMock()
         mock_outputs.logits = torch.tensor([[[0.1, 0.2, 0.7]]])
@@ -405,11 +439,11 @@ class TestQwenVLAdapter:
         adapter.tokenizer.decode.return_value = "Token"
         
         adapter.processor.apply_chat_template.return_value = "formatted_text"
-        adapter.processor.return_value = {
-            "input_ids": torch.tensor([[1, 2, 3]]),
-            "attention_mask": torch.tensor([[1, 1, 1]]),
-            "pixel_values": torch.tensor([[[[0.5]]]])
-        }
+        adapter.processor.return_value = create_mock_inputs(
+            torch.tensor([[1, 2, 3]]),
+            torch.tensor([[1, 1, 1]]),
+            torch.tensor([[[[0.5]]]])
+        )
         
         mock_outputs = MagicMock()
         mock_outputs.logits = torch.tensor([[[0.1, 0.2, 0.7]]])

@@ -1,6 +1,7 @@
 """Pytest configuration and fixtures."""
 
 import asyncio
+import os
 import tempfile
 from pathlib import Path
 from typing import AsyncGenerator, Generator
@@ -31,8 +32,13 @@ class MockModelAdapter(ModelAdapter):
 
 
 @pytest.fixture
-def mock_adapter() -> MockModelAdapter:
+def mock_adapter(tmp_path) -> MockModelAdapter:
     """Create mock model adapter."""
+    # Set cache directory to temporary path
+    os.environ["CACHE_DIR"] = str(tmp_path / "cache")
+    # Reset GCS loader singleton to pick up new cache dir
+    import services.common.gcs_loader as gcs_loader
+    gcs_loader._gcs_loader = None
     return MockModelAdapter()
 
 

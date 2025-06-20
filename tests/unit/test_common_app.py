@@ -43,10 +43,11 @@ def test_metrics_endpoint(test_app: TestClient):
 @pytest.mark.unit
 def test_cors_headers(test_app: TestClient):
     """Test CORS headers are present."""
-    response = test_app.options("/health")
+    # Make a GET request with an Origin header to trigger CORS
+    response = test_app.get("/health", headers={"Origin": "http://example.com"})
     assert response.status_code == 200
     
-    # CORS headers should be present
+    # CORS headers should be present in response
     headers = response.headers
     assert "access-control-allow-origin" in headers
-    assert "access-control-allow-methods" in headers
+    assert headers["access-control-allow-origin"] == "*"

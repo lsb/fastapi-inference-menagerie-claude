@@ -77,22 +77,26 @@ class TestCLIPClassification:
         
         # Test cat images
         cat_office_result = await clip_adapter.predict({
+            "task": "similarity",
             "texts": ["a cat", "a dog"],
             "images": [test_images["cat_office_typing.png"]]
         })
         
         cat_mountain_result = await clip_adapter.predict({
+            "task": "similarity",
             "texts": ["a cat", "a dog"], 
             "images": [test_images["cat_mountain_sunrise.png"]]
         })
         
         # Test dog images
         dog_office_result = await clip_adapter.predict({
+            "task": "similarity",
             "texts": ["a cat", "a dog"],
             "images": [test_images["dog_office_typing.png"]]
         })
         
         dog_mountain_result = await clip_adapter.predict({
+            "task": "similarity",
             "texts": ["a cat", "a dog"],
             "images": [test_images["dog_mountain_sunrise.png"]]
         })
@@ -124,22 +128,26 @@ class TestCLIPClassification:
         
         # Test indoor images (office scenes)
         cat_office_result = await clip_adapter.predict({
+            "task": "similarity",
             "texts": ["indoor office scene", "outdoor mountain scene"],
             "images": [test_images["cat_office_typing.png"]]
         })
         
         dog_office_result = await clip_adapter.predict({
+            "task": "similarity",
             "texts": ["indoor office scene", "outdoor mountain scene"],
             "images": [test_images["dog_office_typing.png"]]
         })
         
         # Test outdoor images (mountain scenes)
         cat_mountain_result = await clip_adapter.predict({
+            "task": "similarity",
             "texts": ["indoor office scene", "outdoor mountain scene"],
             "images": [test_images["cat_mountain_sunrise.png"]]
         })
         
         dog_mountain_result = await clip_adapter.predict({
+            "task": "similarity",
             "texts": ["indoor office scene", "outdoor mountain scene"],
             "images": [test_images["dog_mountain_sunrise.png"]]
         })
@@ -174,6 +182,7 @@ class TestCLIPClassification:
         # Test each image against all descriptions
         for image_name, image_data in test_images.items():
             result = await clip_adapter.predict({
+                "task": "similarity",
                 "texts": descriptions,
                 "images": [image_data]
             })

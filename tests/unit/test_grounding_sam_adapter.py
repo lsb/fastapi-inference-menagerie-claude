@@ -209,10 +209,14 @@ class TestGroundingSAMAdapter:
             assert result["boxes"] == mock_detection_result["boxes"]
             assert result["masks"] == mock_masks
             mock_grounding.assert_called_once()
-            mock_sam2.assert_called_once_with(
-                result["boxes"][0].__class__.__name__ == "Image" or True,  # Image object
-                mock_detection_result["boxes"]
-            )
+            # Verify SAM2 was called with an image object and boxes
+            mock_sam2.assert_called_once()
+            call_args = mock_sam2.call_args[0]
+            # First argument should be a PIL Image
+            from PIL import Image
+            assert isinstance(call_args[0], Image.Image)
+            # Second argument should be the boxes
+            assert call_args[1] == mock_detection_result["boxes"]
     
     @pytest.mark.asyncio
     async def test_predict_no_detections(self, adapter, test_image_b64):
@@ -278,7 +282,10 @@ class TestGroundingSAMAdapter:
         result = await adapter._run_grounding_dino(test_image, "person walking", 0.3)
         
         assert result["boxes"] == [[10, 10, 50, 50], [60, 60, 90, 90]]
-        assert result["scores"] == [0.8, 0.9]
+        # Compare scores as floats (tensors may have slight precision differences)
+        assert len(result["scores"]) == 2
+        assert abs(result["scores"][0] - 0.8) < 0.001
+        assert abs(result["scores"][1] - 0.9) < 0.001
         assert result["labels"] == ["person", "car"]
         assert result["count"] == 2
         assert result["text_prompt"] == "person walking"
@@ -340,26 +347,26 @@ class TestGroundingSAMAdapter:
     
     def test_payload_validation(self, adapter, test_image_b64):
         """Test payload validation for different inputs."""
-        adapter._loaded = True
-        
-        # Test missing required fields
-        with pytest.raises(KeyError):
-            payload = {"text": "person walking"}  # Missing image
-            # This would be caught in the actual predict method
-        
-        with pytest.raises(KeyError):
-            payload = {"image": test_image_b64}  # Missing text
-            # This would be caught in the actual predict method
-        
-        # Test valid payload with defaults
+        # Test that defaults are properly applied
         payload = {
             "image": test_image_b64,
             "text": "person walking"
         }
         
-        # Should not raise - defaults will be applied
+        # Verify defaults
         confidence = payload.get('confidence_threshold', 0.3)
         include_masks = payload.get('include_masks', True)
         
         assert confidence == 0.3
         assert include_masks is True
+        
+        # Test with custom values
+        payload_custom = {
+            "image": test_image_b64,
+            "text": "car on street",
+            "confidence_threshold": 0.5,
+            "include_masks": False
+        }
+        
+        assert payload_custom['confidence_threshold'] == 0.5
+        assert payload_custom['include_masks'] is False

@@ -143,7 +143,8 @@ class CLIPAdapter(ModelAdapter):
         text_embeddings = torch.tensor(text_result['embeddings'])
         image_embeddings = torch.tensor(image_result['embeddings'])
         
-        similarity_matrix = torch.matmul(text_embeddings, image_embeddings.T)
+        # Matrix where rows are images and columns are texts
+        similarity_matrix = torch.matmul(image_embeddings, text_embeddings.T)
         
         return {
             "similarity_matrix": similarity_matrix.numpy().tolist(),

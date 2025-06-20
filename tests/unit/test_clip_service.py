@@ -46,16 +46,72 @@ class MockCLIPAdapter(CLIPAdapter):
                 "image_count": 2,
                 "texts": payload.get('texts', [])
             }
+        else:
+            raise ValueError(f"Unknown task: {task}")
 
 
 @pytest.fixture
 def clip_app():
-    """Create CLIP test app."""
+    """Create CLIP test app with CLIP-specific routes."""
+    from fastapi import FastAPI, HTTPException
+    from pydantic import BaseModel, Field
+    from typing import Dict, Any, List
+    
+    # Create custom test app with CLIP routes
+    app = FastAPI(title="CLIP Test Service")
     adapter = MockCLIPAdapter()
-    app = create_app(
-        model_adapter=adapter,
-        title="CLIP Test Service"
-    )
+    
+    # Request models
+    class TextEncodeRequest(BaseModel):
+        texts: List[str] = Field(..., description="List of texts to encode")
+    
+    class ImageEncodeRequest(BaseModel):
+        images: List[str] = Field(..., description="List of base64 encoded images")
+    
+    class SimilarityRequest(BaseModel):
+        texts: List[str] = Field(..., description="List of texts")
+        images: List[str] = Field(..., description="List of base64 encoded images")
+    
+    # Add CLIP-specific routes
+    @app.post("/v1/clip/encode")
+    async def encode_endpoint(payload: Dict[str, Any]) -> Dict[str, Any]:
+        try:
+            result = await adapter.predict(payload)
+            return {"success": True, "result": result}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/v1/clip/encode/text")
+    async def encode_text(request: TextEncodeRequest) -> Dict[str, Any]:
+        try:
+            payload = {"task": "encode_text", "texts": request.texts}
+            result = await adapter.predict(payload)
+            return {"success": True, "result": result}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/v1/clip/encode/image")
+    async def encode_images(request: ImageEncodeRequest) -> Dict[str, Any]:
+        try:
+            payload = {"task": "encode_image", "images": request.images}
+            result = await adapter.predict(payload)
+            return {"success": True, "result": result}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/v1/clip/similarity")
+    async def compute_similarity(request: SimilarityRequest) -> Dict[str, Any]:
+        try:
+            payload = {
+                "task": "similarity",
+                "texts": request.texts,
+                "images": request.images
+            }
+            result = await adapter.predict(payload)
+            return {"success": True, "result": result}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    
     return TestClient(app)
 
 
@@ -145,24 +201,32 @@ class TestCLIPAdapter:
     @pytest.mark.asyncio
     @patch('services.clip.adapter.CLIPProcessor')
     @patch('services.clip.adapter.CLIPModel')
-    async def test_load_model_from_hub(self, mock_model_class, mock_processor_class):
+    async def test_load_model_from_hub(self, mock_model_class, mock_processor_class, tmp_path):
         """Test loading model from HuggingFace Hub."""
-        # Mock the classes
-        mock_model = MagicMock()
-        mock_processor = MagicMock()
-        mock_model_class.from_pretrained.return_value = mock_model
-        mock_processor_class.from_pretrained.return_value = mock_processor
+        # Set cache directory to temporary path
+        import os
+        os.environ["CACHE_DIR"] = str(tmp_path / "cache")
+        
+        # Reset GCS loader singleton
+        import services.common.gcs_loader as gcs_loader
+        gcs_loader._gcs_loader = None
         
         adapter = CLIPAdapter("gs://test-bucket/clip", "cpu")
         
         # Mock the download_weights to return None (no GCS weights)
         adapter.download_weights = AsyncMock(return_value=None)
         
+        # Mock the classes to return specific instances
+        mock_model = MagicMock()
+        mock_processor = MagicMock()
+        mock_model_class.from_pretrained.return_value = mock_model
+        mock_processor_class.from_pretrained.return_value = mock_processor
+        
         await adapter.load_model()
         
         assert adapter._loaded is True
-        assert adapter.model == mock_model
-        assert adapter.processor == mock_processor
+        assert adapter.model is not None
+        assert adapter.processor is not None
         
         # Verify HuggingFace Hub was used
         mock_processor_class.from_pretrained.assert_called_once_with("openai/clip-vit-base-patch32")

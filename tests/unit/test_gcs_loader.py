@@ -1,5 +1,6 @@
 """Unit tests for GCS loader."""
 
+import os
 import pytest
 from unittest.mock import MagicMock, patch
 from pathlib import Path
@@ -24,12 +25,32 @@ class TestGCSLoader:
         assert loader.enable_cache is True
         assert loader.project == "test-project"
     
-    def test_initialization_default_cache(self):
+    @patch('pathlib.Path.mkdir')
+    def test_initialization_default_cache(self, mock_mkdir):
         """Test initialization with default cache directory."""
-        loader = GCSLoader()
+        # Temporarily unset CACHE_DIR to test default
+        original_cache_dir = os.environ.get("CACHE_DIR")
+        if "CACHE_DIR" in os.environ:
+            del os.environ["CACHE_DIR"]
         
-        assert loader.cache_dir == Path("/var/cache/zoo")
-        assert loader.enable_cache is True
+        try:
+            # Reset singleton to pick up environment change
+            import services.common.gcs_loader as gcs_loader
+            gcs_loader._gcs_loader = None
+            
+            loader = GCSLoader()
+            
+            assert loader.cache_dir == Path("/var/cache/zoo")
+            assert loader.enable_cache is True
+            # Verify mkdir was called
+            mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
+        finally:
+            # Restore original value
+            if original_cache_dir is not None:
+                os.environ["CACHE_DIR"] = original_cache_dir
+            # Reset singleton again
+            import services.common.gcs_loader as gcs_loader
+            gcs_loader._gcs_loader = None
     
     @patch('services.common.gcs_loader.storage.Client')
     def test_gcs_client_property(self, mock_client_class):

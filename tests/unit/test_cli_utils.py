@@ -97,11 +97,13 @@ class TestCLIUtils:
     @patch('os.getenv')
     def test_get_user_prefix_default(self, mock_getenv):
         """Test getting user prefix with default."""
-        mock_getenv.return_value = None
+        # Mock os.getenv to return the default value when USER is not set
+        mock_getenv.side_effect = lambda key, default=None: default if key == "USER" else None
         
         prefix = get_user_prefix()
         
         assert prefix == "default"
+        mock_getenv.assert_called_once_with("USER", "default")
     
     @patch('subprocess.run')
     def test_run_command_success(self, mock_run):
@@ -126,11 +128,17 @@ class TestCLIUtils:
     @patch('subprocess.run')
     def test_run_command_no_check(self, mock_run):
         """Test running command without checking return code."""
-        mock_run.side_effect = subprocess.CalledProcessError(1, "cmd")
+        # Create a mock result with non-zero return code
+        mock_result = MagicMock()
+        mock_result.returncode = 1
+        mock_result.stdout = ""
+        mock_result.stderr = "Command failed"
+        mock_run.return_value = mock_result
         
         # Should not raise exception when check=False
         result = run_command(["false"], check=False)
         
+        assert result == mock_result
         mock_run.assert_called_once()
     
     @patch('subprocess.run')

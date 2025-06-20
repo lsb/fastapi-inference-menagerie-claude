@@ -101,6 +101,7 @@ class QwenVLAdapter(ModelAdapter):
             padding=True,
             return_tensors="pt"
         )
+        input_ids = inputs.input_ids
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
         
         # Generate response
@@ -115,7 +116,7 @@ class QwenVLAdapter(ModelAdapter):
         
         # Decode response
         generated_ids_trimmed = [
-            out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
+            out_ids[len(in_ids):] for in_ids, out_ids in zip(input_ids, generated_ids)
         ]
         
         answer = self.processor.batch_decode(
@@ -174,11 +175,11 @@ class QwenVLAdapter(ModelAdapter):
             padding=True,
             return_tensors="pt"
         )
+        input_length = inputs.input_ids.shape[1]
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
         
         # Streaming generation
         with torch.no_grad():
-            input_length = inputs.input_ids.shape[1]
             
             for _ in range(max_tokens):
                 # Generate next token
@@ -204,7 +205,7 @@ class QwenVLAdapter(ModelAdapter):
                 yield token_text
                 
                 # Update inputs for next iteration
-                inputs.input_ids = torch.cat([inputs.input_ids, next_token.unsqueeze(0)], dim=1)
+                inputs["input_ids"] = torch.cat([inputs["input_ids"], next_token.unsqueeze(0)], dim=1)
                 
                 # Add small delay to avoid overwhelming the client
                 await asyncio.sleep(0.01)
