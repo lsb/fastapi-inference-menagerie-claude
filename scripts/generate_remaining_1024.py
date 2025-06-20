@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate test images using Stable Diffusion XL on CPU."""
+"""Generate remaining test images at 1024x1024 with 20 steps."""
 
 import os
 from pathlib import Path
@@ -7,23 +7,20 @@ import torch
 from diffusers import DiffusionPipeline
 
 def main():
-    """Generate 4 test images for CLIP testing using SDXL."""
+    """Generate remaining test images."""
     
-    # Create output directory
     output_dir = Path("tests/data/images")
-    output_dir.mkdir(parents=True, exist_ok=True)
     
     print("Loading Stable Diffusion XL pipeline...")
     
     # Load SDXL pipeline
     pipe = DiffusionPipeline.from_pretrained(
         "stabilityai/stable-diffusion-xl-base-1.0",
-        torch_dtype=torch.float32,  # Use float32 for CPU
-        use_safetensors=True,
-        variant="fp16" if torch.cuda.is_available() else None
+        torch_dtype=torch.float32,
+        use_safetensors=True
     )
     
-    # Force CPU usage as requested
+    # Force CPU usage
     device = "cpu"
     pipe = pipe.to(device)
     
@@ -33,13 +30,8 @@ def main():
     if hasattr(pipe, "enable_attention_slicing"):
         pipe.enable_attention_slicing()
     
-    # Test prompts and filenames - photorealistic style
-    test_cases = [
-        {
-            "prompt": "photorealistic, hyper detailed, a tabby cat with paws on a computer keyboard in a modern office, professional lighting, sharp focus, 8k resolution, realistic fur texture, office environment with desk and monitor",
-            "filename": "cat_office_typing.png",
-            "description": "Cat in office (indoor)"
-        },
+    # Remaining test cases (skip cat_office_typing.png which already exists)
+    remaining_cases = [
         {
             "prompt": "photorealistic, hyper detailed, a golden retriever dog with paws on a computer keyboard in a modern office, professional lighting, sharp focus, 8k resolution, realistic fur texture, office environment with desk and monitor", 
             "filename": "dog_office_typing.png",
@@ -57,8 +49,8 @@ def main():
         }
     ]
     
-    # Generate images
-    for i, case in enumerate(test_cases, 1):
+    # Generate remaining images
+    for i, case in enumerate(remaining_cases, 2):  # Start from 2 since we have 1 already
         print(f"\nGenerating image {i}/4: {case['description']}")
         print(f"Prompt: {case['prompt']}")
         
@@ -67,7 +59,7 @@ def main():
             image = pipe(
                 case["prompt"],
                 num_inference_steps=20,  # Use 20 diffusion steps as requested
-                guidance_scale=5.0,      # Lower guidance for speed
+                guidance_scale=5.0,
                 height=1024,
                 width=1024
             ).images[0]
@@ -79,17 +71,9 @@ def main():
             
         except Exception as e:
             print(f"Error generating image {i}: {e}")
-            # Continue with next image
             continue
     
-    print(f"\nCompleted generating images in {output_dir}")
-    print("\nGenerated files:")
-    for case in test_cases:
-        output_path = output_dir / case["filename"]
-        if output_path.exists():
-            print(f"  ✓ {case['filename']}: {case['description']}")
-        else:
-            print(f"  ✗ {case['filename']}: Failed to generate")
+    print(f"\nCompleted generating remaining images in {output_dir}")
 
 if __name__ == "__main__":
     main()
