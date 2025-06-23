@@ -167,6 +167,12 @@ class TestCLIPService:
         assert result["text_count"] == 2
         assert result["image_count"] == 2
         assert len(result["similarity_matrix"]) == 2
+        
+        # Print similarity scores for inspection
+        print("\nSimilarity matrix (rows=images, cols=texts):")
+        print("  Texts: ['a cat', 'a dog']")
+        for i, row in enumerate(result["similarity_matrix"]):
+            print(f"  Image {i}: {[f'{score:.4f}' for score in row]}")
     
     def test_universal_encode_endpoint(self, clip_app: TestClient):
         """Test universal encoding endpoint."""

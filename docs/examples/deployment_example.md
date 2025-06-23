@@ -45,7 +45,7 @@ vim services/my-awesome-model/app.py
 
 ```bash
 # Build and deploy to local k3d
-zoo build my-awesome-model --registry localhost:5000
+zoo build my-awesome-model --registry localhost:7070
 zoo deploy my-awesome-model --namespace default
 
 # Check status

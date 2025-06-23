@@ -40,7 +40,7 @@ class TestK3DDeployment:
                 "k3d", "cluster", "create", cluster_name,
                 "--agents", "1",
                 "--port", "8081:80@loadbalancer",
-                "--registry-create", "test-registry:5000"
+                "--registry-create", "test-registry:7070"
             ])
             
             # Wait for cluster to be ready

@@ -47,7 +47,7 @@ if [ "$GPU_SUPPORT" = "true" ]; then
 fi
 
 # Add registry for local development
-K3D_CMD="$K3D_CMD --registry-create model-zoo-registry:5000"
+K3D_CMD="$K3D_CMD --registry-create model-zoo-registry:7070"
 
 # Create cluster
 echo "Running: $K3D_CMD"

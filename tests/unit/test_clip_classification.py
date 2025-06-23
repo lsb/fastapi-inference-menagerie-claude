@@ -109,16 +109,20 @@ class TestCLIPClassification:
         
         # For cat images, "a cat" should have higher similarity than "a dog"
         cat_office_sim = cat_office_result["similarity_matrix"][0]  # First image
+        print(f"\nCat office typing - Similarities: cat={cat_office_sim[0]:.4f}, dog={cat_office_sim[1]:.4f}")
         assert cat_office_sim[0] > cat_office_sim[1], f"Cat office: cat={cat_office_sim[0]}, dog={cat_office_sim[1]}"
         
         cat_mountain_sim = cat_mountain_result["similarity_matrix"][0]
+        print(f"Cat mountain sunrise - Similarities: cat={cat_mountain_sim[0]:.4f}, dog={cat_mountain_sim[1]:.4f}")
         assert cat_mountain_sim[0] > cat_mountain_sim[1], f"Cat mountain: cat={cat_mountain_sim[0]}, dog={cat_mountain_sim[1]}"
         
         # For dog images, "a dog" should have higher similarity than "a cat" 
         dog_office_sim = dog_office_result["similarity_matrix"][0]
+        print(f"Dog office typing - Similarities: cat={dog_office_sim[0]:.4f}, dog={dog_office_sim[1]:.4f}")
         assert dog_office_sim[1] > dog_office_sim[0], f"Dog office: cat={dog_office_sim[0]}, dog={dog_office_sim[1]}"
         
-        dog_mountain_sim = dog_mountain_result["similarity_matrix"][0] 
+        dog_mountain_sim = dog_mountain_result["similarity_matrix"][0]
+        print(f"Dog mountain sunrise - Similarities: cat={dog_mountain_sim[0]:.4f}, dog={dog_mountain_sim[1]:.4f}")
         assert dog_mountain_sim[1] > dog_mountain_sim[0], f"Dog mountain: cat={dog_mountain_sim[0]}, dog={dog_mountain_sim[1]}"
     
     @pytest.mark.asyncio
@@ -154,16 +158,20 @@ class TestCLIPClassification:
         
         # For office images, "indoor office scene" should have higher similarity
         cat_office_sim = cat_office_result["similarity_matrix"][0]
+        print(f"\nCat office - Scene similarities: indoor={cat_office_sim[0]:.4f}, outdoor={cat_office_sim[1]:.4f}")
         assert cat_office_sim[0] > cat_office_sim[1], f"Cat office: indoor={cat_office_sim[0]}, outdoor={cat_office_sim[1]}"
         
         dog_office_sim = dog_office_result["similarity_matrix"][0]
+        print(f"Dog office - Scene similarities: indoor={dog_office_sim[0]:.4f}, outdoor={dog_office_sim[1]:.4f}")
         assert dog_office_sim[0] > dog_office_sim[1], f"Dog office: indoor={dog_office_sim[0]}, outdoor={dog_office_sim[1]}"
         
         # For mountain images, "outdoor mountain scene" should have higher similarity
         cat_mountain_sim = cat_mountain_result["similarity_matrix"][0]
+        print(f"Cat mountain - Scene similarities: indoor={cat_mountain_sim[0]:.4f}, outdoor={cat_mountain_sim[1]:.4f}")
         assert cat_mountain_sim[1] > cat_mountain_sim[0], f"Cat mountain: indoor={cat_mountain_sim[0]}, outdoor={cat_mountain_sim[1]}"
         
         dog_mountain_sim = dog_mountain_result["similarity_matrix"][0]
+        print(f"Dog mountain - Scene similarities: indoor={dog_mountain_sim[0]:.4f}, outdoor={dog_mountain_sim[1]:.4f}")
         assert dog_mountain_sim[1] > dog_mountain_sim[0], f"Dog mountain: indoor={dog_mountain_sim[0]}, outdoor={dog_mountain_sim[1]}"
     
     @pytest.mark.asyncio
@@ -190,6 +198,12 @@ class TestCLIPClassification:
             similarities = result["similarity_matrix"][0]
             max_idx = similarities.index(max(similarities))
             predicted_description = descriptions[max_idx]
+            
+            # Print similarity scores for inspection
+            print(f"\n{image_name} - Similarities:")
+            for i, desc in enumerate(descriptions):
+                print(f"  {desc}: {similarities[i]:.4f}")
+            print(f"  Predicted: {predicted_description}")
             
             # Verify the prediction makes sense
             if "cat_office" in image_name:
