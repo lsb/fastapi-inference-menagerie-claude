@@ -5,26 +5,37 @@ import time
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
-from tests.conftest import MockModelAdapter
+from services.clip.adapter import CLIPAdapter
 
 
 @pytest.mark.performance
 class TestModelPerformance:
     """Test model performance characteristics."""
     
+    @pytest.fixture(scope="class")
+    async def clip_adapter(self):
+        """Real CLIP adapter for performance testing."""
+        import os
+        os.environ.setdefault("CACHE_DIR", "/tmp/performance_test_cache")
+        adapter = CLIPAdapter(gcs_path=None, device="cpu")
+        await adapter.load_model()
+        yield adapter
+    
     @pytest.mark.asyncio
-    async def test_concurrent_predictions(self):
+    async def test_concurrent_predictions(self, clip_adapter):
         """Test concurrent prediction performance."""
-        adapter = MockModelAdapter()
         
         # Test concurrent requests
-        num_requests = 10
+        num_requests = 5  # Reduced for real model
         start_time = time.time()
         
         tasks = []
         for i in range(num_requests):
-            payload = {"test": f"data_{i}"}
-            tasks.append(adapter.predict(payload))
+            payload = {
+                "task": "encode_text",
+                "texts": [f"test text {i}"]
+            }
+            tasks.append(clip_adapter.predict(payload))
         
         results = await asyncio.gather(*tasks)
         
@@ -34,56 +45,58 @@ class TestModelPerformance:
         # Verify all requests completed
         assert len(results) == num_requests
         
-        # Performance assertions
+        # Performance assertions - real CLIP model will be slower
         avg_time_per_request = total_time / num_requests
-        assert avg_time_per_request < 0.1  # Should be fast for mock
+        assert avg_time_per_request < 2.0  # Allow up to 2s per request for CPU CLIP
         
         print(f"Processed {num_requests} requests in {total_time:.3f}s")
         print(f"Average time per request: {avg_time_per_request:.3f}s")
     
     @pytest.mark.asyncio
-    async def test_memory_usage_stability(self):
+    async def test_memory_usage_stability(self, clip_adapter):
         """Test that memory usage remains stable under load."""
         import psutil
         import os
-        
-        adapter = MockModelAdapter()
         process = psutil.Process(os.getpid())
         
         # Initial memory measurement
         initial_memory = process.memory_info().rss
         
-        # Run many predictions
-        for i in range(100):
-            payload = {"test": f"data_{i}"}
-            await adapter.predict(payload)
+        # Run many predictions (reduced for real model)
+        for i in range(10):
+            payload = {
+                "task": "encode_text", 
+                "texts": [f"test text {i}"]
+            }
+            await clip_adapter.predict(payload)
             
-            # Check memory every 10 iterations
-            if i % 10 == 0:
+            # Check memory every 5 iterations
+            if i % 5 == 0:
                 current_memory = process.memory_info().rss
                 memory_increase = current_memory - initial_memory
                 
-                # Memory shouldn't grow significantly (allow 50MB increase)
-                assert memory_increase < 50 * 1024 * 1024
+                # Memory shouldn't grow significantly (allow 100MB increase for real model)
+                assert memory_increase < 100 * 1024 * 1024
         
         final_memory = process.memory_info().rss
         memory_increase = final_memory - initial_memory
         
-        print(f"Memory increase after 100 predictions: {memory_increase / 1024 / 1024:.2f} MB")
+        print(f"Memory increase after 10 predictions: {memory_increase / 1024 / 1024:.2f} MB")
     
     @pytest.mark.asyncio
-    async def test_response_time_consistency(self):
+    async def test_response_time_consistency(self, clip_adapter):
         """Test that response times are consistent."""
-        adapter = MockModelAdapter()
-        
         response_times = []
         
-        # Run predictions and measure times
-        for i in range(20):
+        # Run predictions and measure times (reduced for real model)
+        for i in range(5):
             start = time.time()
             
-            payload = {"test": f"data_{i}"}
-            await adapter.predict(payload)
+            payload = {
+                "task": "encode_text",
+                "texts": [f"test text {i}"]
+            }
+            await clip_adapter.predict(payload)
             
             end = time.time()
             response_times.append(end - start)
@@ -93,38 +106,36 @@ class TestModelPerformance:
         max_time = max(response_times)
         min_time = min(response_times)
         
-        # Response time consistency checks
-        # For very fast operations (sub-millisecond), allow more variance
-        if avg_time < 0.001:  # Less than 1ms
-            assert max_time < avg_time * 10  # Allow 10x variance for microsecond operations
-        else:
-            assert max_time < avg_time * 3  # Max shouldn't be more than 3x average
-            assert min_time > avg_time * 0.1  # Min shouldn't be less than 10% of average
+        # Response time consistency checks for real model
+        assert max_time < avg_time * 3  # Max shouldn't be more than 3x average
+        assert min_time > avg_time * 0.1  # Min shouldn't be less than 10% of average
         
         print(f"Response time stats - Avg: {avg_time:.3f}s, Min: {min_time:.3f}s, Max: {max_time:.3f}s")
     
-    def test_threading_safety(self):
+    def test_threading_safety(self, clip_adapter):
         """Test that adapter is thread-safe."""
-        adapter = MockModelAdapter()
         
         def worker(worker_id):
             """Worker function for threading test."""
             results = []
-            for i in range(10):
+            for i in range(2):  # Reduced for real model
                 # Run synchronous version for threading test
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 
-                payload = {"worker": worker_id, "request": i}
-                result = loop.run_until_complete(adapter.predict(payload))
+                payload = {
+                    "task": "encode_text",
+                    "texts": [f"worker {worker_id} text {i}"]
+                }
+                result = loop.run_until_complete(clip_adapter.predict(payload))
                 results.append(result)
                 
                 loop.close()
             
             return results
         
-        # Run with multiple threads
-        num_threads = 5
+        # Run with multiple threads (reduced for real model)
+        num_threads = 2
         with ThreadPoolExecutor(max_workers=num_threads) as executor:
             futures = []
             
@@ -139,12 +150,12 @@ class TestModelPerformance:
                 all_results.extend(thread_results)
         
         # Verify all requests completed successfully
-        assert len(all_results) == num_threads * 10
+        assert len(all_results) == num_threads * 2
         
         # Verify no corrupted results
         for result in all_results:
-            assert "result" in result
-            assert result["result"] == "mock_prediction"
+            assert "embeddings" in result
+            assert result["count"] > 0
 
 
 @pytest.mark.performance
@@ -152,14 +163,22 @@ class TestModelPerformance:
 class TestLoadTesting:
     """Load testing for model services."""
     
+    @pytest.fixture(scope="class")
+    async def clip_adapter_load(self):
+        """Real CLIP adapter for load testing."""
+        import os
+        os.environ.setdefault("CACHE_DIR", "/tmp/load_test_cache")
+        adapter = CLIPAdapter(gcs_path=None, device="cpu")
+        await adapter.load_model()
+        yield adapter
+    
     @pytest.mark.asyncio
-    async def test_sustained_load(self):
+    async def test_sustained_load(self, clip_adapter_load):
         """Test performance under sustained load."""
-        adapter = MockModelAdapter()
         
-        # Test parameters
-        duration_seconds = 30
-        requests_per_second = 10
+        # Test parameters (reduced for real model)
+        duration_seconds = 10
+        requests_per_second = 2
         
         start_time = time.time()
         completed_requests = 0
@@ -169,8 +188,11 @@ class TestLoadTesting:
             """Make a single request."""
             nonlocal completed_requests, errors
             try:
-                payload = {"load_test": True, "request_id": request_id}
-                await adapter.predict(payload)
+                payload = {
+                    "task": "encode_text",
+                    "texts": [f"load test text {request_id}"]
+                }
+                await clip_adapter_load.predict(payload)
                 completed_requests += 1
             except Exception:
                 errors += 1
@@ -208,18 +230,19 @@ class TestLoadTesting:
         assert actual_rps > requests_per_second * 0.8  # At least 80% of target RPS
     
     @pytest.mark.asyncio
-    async def test_burst_traffic(self):
+    async def test_burst_traffic(self, clip_adapter_load):
         """Test handling of burst traffic."""
-        adapter = MockModelAdapter()
-        
-        # Test burst of requests
-        burst_size = 50
+        # Test burst of requests (reduced for real model)
+        burst_size = 5
         start_time = time.time()
         
         tasks = []
         for i in range(burst_size):
-            payload = {"burst_test": True, "request": i}
-            tasks.append(adapter.predict(payload))
+            payload = {
+                "task": "encode_text",
+                "texts": [f"burst test text {i}"]
+            }
+            tasks.append(clip_adapter_load.predict(payload))
         
         results = await asyncio.gather(*tasks, return_exceptions=True)
         
@@ -235,6 +258,6 @@ class TestLoadTesting:
         print(f"  Successful: {successful}")
         print(f"  RPS: {successful / burst_duration:.1f}")
         
-        # Assertions
-        assert successful >= burst_size * 0.95  # At least 95% success rate
-        assert burst_duration < burst_size * 0.1  # Should handle burst efficiently
+        # Assertions for real model
+        assert successful >= burst_size * 0.8  # At least 80% success rate for real model
+        assert burst_duration < burst_size * 2.0  # Allow 2s per request for real model
