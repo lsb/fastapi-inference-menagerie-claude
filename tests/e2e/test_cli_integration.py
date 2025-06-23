@@ -6,6 +6,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
+import typer
 from cli.utils import get_project_root
 
 
@@ -61,7 +62,7 @@ class TestCLIIntegration:
             from cli.commands.init import main as init_main
             
             # Should raise error for existing service
-            with pytest.raises(SystemExit):
+            with pytest.raises(typer.Exit):
                 init_main("existing-model")
     
     @patch('cli.commands.build.run_command')
@@ -94,7 +95,7 @@ class TestCLIIntegration:
         from cli.commands.deploy import main as deploy_main
         
         # Should exit when k8s is not available
-        with pytest.raises(SystemExit):
+        with pytest.raises(typer.Exit):
             deploy_main("test-model")
     
     @patch('cli.commands.logs.check_k8s_connection')

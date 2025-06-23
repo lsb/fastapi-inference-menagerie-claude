@@ -71,7 +71,7 @@ def _create_basic_template(service_dir: Path, model_name: str) -> None:
     (service_dir / "__init__.py").write_text("")
     
     # Create adapter.py
-    adapter_content = f'''"""{{model_name}} model adapter."""
+    adapter_content = f'''"""{model_name} model adapter."""
 
 import logging
 from typing import Dict, Any
@@ -82,30 +82,30 @@ logger = logging.getLogger(__name__)
 
 
 class {model_name.title().replace("-", "").replace("_", "")}Adapter(ModelAdapter):
-    """{{model_name}} model adapter."""
+    """{model_name} model adapter."""
     
     def __init__(self, gcs_path: str, device: str) -> None:
-        """Initialize {{model_name}} adapter."""
+        """Initialize {model_name} adapter."""
         super().__init__(gcs_path, device)
         self.model = None
     
     async def load_model(self) -> None:
-        """Load {{model_name}} model from GCS path."""
-        logger.info("Loading {{model_name}} model...")
+        """Load {model_name} model from GCS path."""
+        logger.info("Loading {model_name} model...")
         
         try:
             # TODO: Implement model loading
             # self.model = load_your_model(self.gcs_path, device=self.device)
             
             self._loaded = True
-            logger.info(f"{{model_name}} model loaded successfully on {{self.device}}")
+            logger.info(f"{model_name} model loaded successfully on {{self.device}}")
             
         except Exception as e:
-            logger.error(f"Failed to load {{model_name}} model: {{e}}")
+            logger.error(f"Failed to load {model_name} model: {{e}}")
             raise
     
     async def predict(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """Run inference on the {{model_name}} model.
+        """Run inference on the {model_name} model.
         
         Args:
             payload: Input data for inference
@@ -118,7 +118,7 @@ class {model_name.title().replace("-", "").replace("_", "")}Adapter(ModelAdapter
         # TODO: Implement inference logic
         # result = self.model(payload)
         
-        return {{"message": "TODO: Implement inference for {{model_name}}"}}
+        return {{"message": f"TODO: Implement inference for {model_name}"}}
 '''
     
     (service_dir / "adapter.py").write_text(adapter_content)
@@ -135,7 +135,7 @@ from pydantic import BaseModel, Field
 from services.common.app import create_app
 from services.common.config import get_config
 from services.common.logging import setup_logging
-from services.{model_name.lower()}.adapter import {model_name.title().replace("-", "").replace("_", "")}Adapter
+from services.{model_name.lower().replace("-", "_")}.adapter import {model_name.title().replace("-", "").replace("_", "")}Adapter
 
 # Setup logging
 setup_logging(service_name="{model_name}")
@@ -166,7 +166,7 @@ class PredictRequest(BaseModel):
 
 
 # Routes
-@app.post("/v1/{model_name.lower()}/predict")
+@app.post("/v1/{model_name.lower().replace('_', '-')}/predict")
 async def predict(request: PredictRequest) -> Dict[str, Any]:
     """Run inference on {model_name} model."""
     try:

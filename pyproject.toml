@@ -112,6 +112,7 @@ markers = [
     "e2e: End-to-end tests that require k3d cluster", 
     "slow: Tests that take more than 10 seconds",
     "asyncio: Async tests using asyncio",
+    "performance: Performance and load tests",
 ]
 asyncio_mode = "auto"
 
