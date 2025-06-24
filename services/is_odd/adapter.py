@@ -43,12 +43,18 @@ class IsOddAdapter(ModelAdapter):
         
         number = payload["number"]
         
-        # Validate input
-        if not isinstance(number, (int, float)):
-            raise ValueError(f"Number must be int or float, got {type(number)}")
+        # Handle string inputs (from HTTP) and numeric inputs (from direct calls)
+        if isinstance(number, str):
+            try:
+                num_int = int(number)
+            except ValueError:
+                raise ValueError(f"Cannot convert string '{number}' to integer")
+        elif isinstance(number, (int, float)):
+            num_int = int(number)
+        else:
+            raise ValueError(f"Number must be int, float, or string, got {type(number)}")
         
-        # Convert to int for odd/even check
-        num_int = int(number)
+        # The num_int is ready for computation
         
         # The actual "inference"
         is_odd = bool(num_int % 2)
