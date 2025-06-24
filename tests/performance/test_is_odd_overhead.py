@@ -47,7 +47,7 @@ class TestIsOddOverhead:
     @pytest.mark.asyncio
     async def test_throughput_baseline(self, is_odd_adapter):
         """Test maximum throughput for simple computation."""
-        num_requests = 1000
+        num_requests = 1000000  # 1 million requests
         start_time = time.time()
         
         tasks = []
@@ -68,9 +68,9 @@ class TestIsOddOverhead:
         assert results[1]["is_odd"] is True   # 1 is odd
         assert results[2]["is_odd"] is False  # 2 is even
         
-        print(f"Processed {num_requests} requests in {total_time:.3f}s")
-        print(f"Throughput: {rps:.0f} requests/second")
-        print(f"Average latency: {(total_time/num_requests)*1000:.3f}ms")
+        print(f"Processed {num_requests:,} requests in {total_time:.3f}s")
+        print(f"Throughput: {rps:,.0f} requests/second")
+        print(f"Average latency: {(total_time/num_requests)*1000:.6f}ms")
         
         # Should achieve very high throughput for simple computation
         assert rps > 10000  # Expect >10k RPS for simple math

@@ -64,21 +64,23 @@ async def main():
     print(f"   CLIP image:  {clip_image_latency:>8.3f}ms ({clip_image_latency/is_odd_latency:>6.0f}x slower)")
     
     # Test 2: Throughput
-    print("\n2️⃣ Throughput (100 requests):")
+    print("\n2️⃣ Throughput Comparison:")
     
-    # Is-Odd throughput
+    # Is-Odd throughput (100k requests for better baseline)
+    print("   Running 100,000 is-odd requests...")
     start = time.time()
-    tasks = [is_odd_adapter.predict({"number": i}) for i in range(100)]
+    tasks = [is_odd_adapter.predict({"number": i}) for i in range(100000)]
     await asyncio.gather(*tasks)
     is_odd_time = time.time() - start
-    is_odd_rps = 100 / is_odd_time
+    is_odd_rps = 100000 / is_odd_time
     
-    # CLIP throughput (10 requests due to speed)
+    # CLIP throughput (50 requests for statistical significance)
+    print("   Running 50 CLIP text encoding requests...")
     start = time.time()
-    tasks = [clip_adapter.predict({"task": "encode_text", "texts": [f"text {i}"]}) for i in range(10)]
+    tasks = [clip_adapter.predict({"task": "encode_text", "texts": [f"text {i}"]}) for i in range(50)]
     await asyncio.gather(*tasks)
     clip_time = time.time() - start
-    clip_rps = 10 / clip_time
+    clip_rps = 50 / clip_time
     
     print(f"   Is-Odd:      {is_odd_rps:>8.0f} req/s")
     print(f"   CLIP:        {clip_rps:>8.1f} req/s ({is_odd_rps/clip_rps:>6.0f}x faster)")

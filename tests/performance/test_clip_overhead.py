@@ -126,64 +126,100 @@ class TestCLIPOverhead:
     
     @pytest.mark.asyncio
     async def test_throughput_text_encoding(self, clip_adapter):
-        """Test throughput for text encoding."""
+        """Test throughput for text encoding with statistical analysis."""
         texts = ["a cat", "a dog", "a bird", "a car", "a tree"]
-        num_requests = 10  # Reduced for CLIP
+        num_requests = 50  # Increased for better statistics
         
+        # Run individual requests to get latency distribution
+        latencies = []
         start_time = time.time()
         
-        tasks = []
         for i in range(num_requests):
             payload = {
                 "task": "encode_text",
                 "texts": [texts[i % len(texts)]]
             }
-            tasks.append(clip_adapter.predict(payload))
-        
-        results = await asyncio.gather(*tasks)
+            
+            req_start = time.time()
+            result = await clip_adapter.predict(payload)
+            req_end = time.time()
+            
+            latencies.append((req_end - req_start) * 1000)  # Convert to ms
+            assert result["count"] == 1
         
         end_time = time.time()
         total_time = end_time - start_time
         rps = num_requests / total_time
         
-        assert len(results) == num_requests
-        for result in results:
-            assert result["count"] == 1
+        # Calculate statistics
+        avg_latency = sum(latencies) / len(latencies)
+        min_latency = min(latencies)
+        max_latency = max(latencies)
+        latencies_sorted = sorted(latencies)
+        p50_latency = latencies_sorted[len(latencies_sorted) // 2]
+        p95_latency = latencies_sorted[int(len(latencies_sorted) * 0.95)]
+        p99_latency = latencies_sorted[int(len(latencies_sorted) * 0.99)]
         
-        print(f"Text encoding: {num_requests} requests in {total_time:.3f}s")
-        print(f"Throughput: {rps:.1f} requests/second")
-        print(f"Average latency: {(total_time/num_requests)*1000:.3f}ms")
+        print(f"\nCLIP Text Encoding Performance ({num_requests} requests):")
+        print(f"  Total time:    {total_time:.3f}s")
+        print(f"  Throughput:    {rps:.1f} requests/second")
+        print(f"  Latency stats:")
+        print(f"    Average:     {avg_latency:.1f}ms")
+        print(f"    Min:         {min_latency:.1f}ms")
+        print(f"    Max:         {max_latency:.1f}ms")
+        print(f"    P50:         {p50_latency:.1f}ms")
+        print(f"    P95:         {p95_latency:.1f}ms")
+        print(f"    P99:         {p99_latency:.1f}ms")
         
         # CLIP will have much lower throughput than is-odd
         assert rps > 1  # At least 1 RPS for CPU CLIP
     
     @pytest.mark.asyncio
     async def test_throughput_image_encoding(self, clip_adapter, test_images):
-        """Test throughput for image encoding."""
+        """Test throughput for image encoding with statistical analysis."""
         images = list(test_images.values())
-        num_requests = 5  # Even fewer for image encoding
+        num_requests = 20  # Increased for better statistics
         
+        # Run individual requests to get latency distribution
+        latencies = []
         start_time = time.time()
         
-        tasks = []
         for i in range(num_requests):
             payload = {
                 "task": "encode_image",
                 "images": [images[i % len(images)]]
             }
-            tasks.append(clip_adapter.predict(payload))
-        
-        results = await asyncio.gather(*tasks)
+            
+            req_start = time.time()
+            result = await clip_adapter.predict(payload)
+            req_end = time.time()
+            
+            latencies.append((req_end - req_start) * 1000)  # Convert to ms
+            assert result["count"] == 1
         
         end_time = time.time()
         total_time = end_time - start_time
         rps = num_requests / total_time
         
-        assert len(results) == num_requests
+        # Calculate statistics
+        avg_latency = sum(latencies) / len(latencies)
+        min_latency = min(latencies)
+        max_latency = max(latencies)
+        latencies_sorted = sorted(latencies)
+        p50_latency = latencies_sorted[len(latencies_sorted) // 2]
+        p95_latency = latencies_sorted[int(len(latencies_sorted) * 0.95)]
+        p99_latency = latencies_sorted[int(len(latencies_sorted) * 0.99)]
         
-        print(f"Image encoding: {num_requests} requests in {total_time:.3f}s")
-        print(f"Throughput: {rps:.1f} requests/second")
-        print(f"Average latency: {(total_time/num_requests)*1000:.3f}ms")
+        print(f"\nCLIP Image Encoding Performance ({num_requests} requests):")
+        print(f"  Total time:    {total_time:.3f}s")
+        print(f"  Throughput:    {rps:.1f} requests/second")
+        print(f"  Latency stats:")
+        print(f"    Average:     {avg_latency:.1f}ms")
+        print(f"    Min:         {min_latency:.1f}ms")
+        print(f"    Max:         {max_latency:.1f}ms")
+        print(f"    P50:         {p50_latency:.1f}ms")
+        print(f"    P95:         {p95_latency:.1f}ms")
+        print(f"    P99:         {p99_latency:.1f}ms")
     
     @pytest.mark.asyncio
     async def test_batch_vs_individual(self, clip_adapter):
