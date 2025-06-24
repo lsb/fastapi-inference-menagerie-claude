@@ -1,0 +1,1 @@
+"""Is-odd demo service for measuring FastAPI overhead."""
