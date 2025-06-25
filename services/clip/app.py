@@ -40,7 +40,27 @@ class TextEncodeRequest(BaseModel):
     texts: List[str] = Field(..., description="List of texts to encode")
 
 
+class ImageEncodeRequest(BaseModel):
+    images: List[str] = Field(..., description="List of base64 encoded images")
+
+
+class SimilarityRequest(BaseModel):
+    texts: List[str] = Field(..., description="List of texts")
+    images: List[str] = Field(..., description="List of base64 encoded images")
+
+
 # Routes
+@app.post("/v1/clip/encode")
+async def encode_endpoint(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Universal encoding endpoint for CLIP."""
+    try:
+        result = await adapter.predict(payload)
+        return {"success": True, "result": result}
+    except Exception as e:
+        logger.error(f"Encoding failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/v1/clip/encode/text")
 async def encode_text(request: TextEncodeRequest) -> Dict[str, Any]:
     """Encode text inputs."""
@@ -104,53 +124,6 @@ async def compute_similarity(
         return {"success": True, "result": result}
     except Exception as e:
         logger.error(f"Similarity computation failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/v1/clip/encode")
-async def encode_endpoint(
-    task: str = Form(..., description="Task type: encode_text, encode_image, or similarity"),
-    texts: Optional[str] = Form(None, description="JSON array of texts (for text/similarity tasks)"),
-    images: Optional[List[UploadFile]] = File(None, description="Images (for image/similarity tasks)")
-) -> Dict[str, Any]:
-    """Universal encoding endpoint for CLIP with multipart support."""
-    try:
-        import json
-        
-        if task == "encode_text":
-            if not texts:
-                raise ValueError("texts parameter required for encode_text task")
-            texts_list = json.loads(texts)
-            payload = {"task": "encode_text", "texts": texts_list}
-            
-        elif task == "encode_image":
-            if not images:
-                raise ValueError("images parameter required for encode_image task")
-            pil_images = []
-            for image_file in images:
-                contents = await image_file.read()
-                pil_image = Image.open(io.BytesIO(contents))
-                pil_images.append(pil_image)
-            payload = {"task": "encode_image", "images": pil_images}
-            
-        elif task == "similarity":
-            if not texts or not images:
-                raise ValueError("Both texts and images required for similarity task")
-            texts_list = json.loads(texts)
-            pil_images = []
-            for image_file in images:
-                contents = await image_file.read()
-                pil_image = Image.open(io.BytesIO(contents))
-                pil_images.append(pil_image)
-            payload = {"task": "similarity", "texts": texts_list, "images": pil_images}
-            
-        else:
-            raise ValueError(f"Unknown task: {task}")
-        
-        result = await adapter.predict(payload)
-        return {"success": True, "result": result}
-    except Exception as e:
-        logger.error(f"Encoding failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

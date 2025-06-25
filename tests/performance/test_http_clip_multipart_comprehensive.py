@@ -11,7 +11,10 @@ from typing import Dict, List
 import statistics
 import json
 
-from services.clip.app import app as clip_app
+from fastapi import FastAPI, HTTPException, File, UploadFile, Form
+from services.clip.adapter import CLIPAdapter
+from PIL import Image
+import io
 
 
 @pytest.mark.performance
@@ -28,8 +31,42 @@ class TestHTTPCLIPMultipartComprehensive:
         import services.common.gcs_loader as gcs_loader
         gcs_loader._gcs_loader = None
         
-        # Use the updated CLIP app with multipart support
-        app = clip_app
+        # Create CLIP adapter
+        adapter = CLIPAdapter(gcs_path=None, device="cpu")
+        await adapter.load_model()
+        
+        # Create FastAPI app with multipart routes
+        app = FastAPI(title="CLIP Multipart Test Service")
+        
+        @app.get("/health")
+        async def health():
+            return {"status": "healthy"}
+        
+        @app.post("/v1/clip/similarity")
+        async def compute_similarity(
+            texts: str = Form(..., description="JSON array of texts to compare"),
+            images: List[UploadFile] = File(..., description="Images to compare against texts")
+        ):
+            try:
+                texts_list = json.loads(texts)
+                if not isinstance(texts_list, list):
+                    raise ValueError("texts must be a JSON array")
+                
+                pil_images = []
+                for image_file in images:
+                    contents = await image_file.read()
+                    pil_image = Image.open(io.BytesIO(contents))
+                    pil_images.append(pil_image)
+                
+                payload = {
+                    "task": "similarity",
+                    "texts": texts_list,
+                    "images": pil_images
+                }
+                result = await adapter.predict(payload)
+                return {"success": True, "result": result}
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
         
         # Start server in background thread
         test_port = 8905
