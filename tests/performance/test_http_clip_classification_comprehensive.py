@@ -154,7 +154,8 @@ class TestHTTPCLIPClassificationComprehensive:
     async def test_comprehensive_classification_performance(self, clip_service_server, comprehensive_test_images):
         """Test comprehensive cat-or-dog AND indoor-or-outdoor classification across all formats."""
         base_url = clip_service_server
-        num_iterations = 50  # 50 runs per image/format combination (reduced for testing)
+        num_iterations = 200  # 200 runs per image/format combination
+        num_warmups = 5  # 5 warmup requests per image
         
         # Classification prompts
         animal_prompts = ["a cat", "a dog"]
@@ -164,17 +165,36 @@ class TestHTTPCLIPClassificationComprehensive:
         print(f"COMPREHENSIVE CLIP CLASSIFICATION PERFORMANCE TEST")
         print(f"{'='*80}")
         print(f"Running {num_iterations} iterations per image/format combination...")
-        print(f"Total tests: {len(comprehensive_test_images)} images × {num_iterations} iterations × 2 prompts = {len(comprehensive_test_images) * num_iterations * 2:,} requests")
+        print(f"Warmups: {len(comprehensive_test_images)} images × {num_warmups} warmups × 2 prompts = {len(comprehensive_test_images) * num_warmups * 2:,} warmup requests")
+        print(f"Total tests: {len(comprehensive_test_images)} images × {num_iterations} iterations × 2 prompts = {len(comprehensive_test_images) * num_iterations * 2:,} test requests")
+        print(f"Grand total: {len(comprehensive_test_images) * (num_warmups + num_iterations) * 2:,} HTTP requests")
         
         all_results = {}
         overall_latencies = []
         
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=300.0) as client:  # 5 minute timeout for 200 iterations
             for image_key, image_info in comprehensive_test_images.items():
                 print(f"\nTesting {image_key}:")
                 print(f"  File: {image_info['filename']} ({image_info['size_kb']:.1f}KB)")
                 print(f"  Expected: {image_info['animal']}, {image_info['setting']}")
                 
+                # Warmup requests (not counted in stats)
+                print(f"  Running {num_warmups} warmup requests...")
+                for warmup in range(num_warmups):
+                    # Warmup animal classification
+                    await client.post(f"{base_url}/v1/clip/encode", json={
+                        "task": "similarity",
+                        "texts": animal_prompts,
+                        "images": [image_info["data"]]
+                    })
+                    # Warmup setting classification  
+                    await client.post(f"{base_url}/v1/clip/encode", json={
+                        "task": "similarity",
+                        "texts": setting_prompts,
+                        "images": [image_info["data"]]
+                    })
+                
+                print(f"  Running {num_iterations} test iterations...")
                 latencies = []
                 animal_correct = 0
                 setting_correct = 0
