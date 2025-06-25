@@ -102,13 +102,15 @@ class CLIPAdapter(ModelAdapter):
     
     async def _encode_images(self, images: List[Union[str, Image.Image]]) -> Dict[str, Any]:
         """Encode image inputs."""
-        # Convert base64 strings to PIL Images if needed
+        # Convert base64 strings to PIL Images if needed (for backwards compatibility)
         pil_images = []
         for img in images:
             if isinstance(img, str):
                 pil_images.append(decode_base64_to_image(img))
-            else:
+            elif isinstance(img, Image.Image):
                 pil_images.append(img)
+            else:
+                raise ValueError(f"Unsupported image type: {type(img)}")
         
         with torch.no_grad():
             inputs = self.processor(
